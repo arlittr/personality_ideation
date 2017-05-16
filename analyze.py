@@ -22,7 +22,6 @@ import matplotlib.pyplot as plt
 from mpl_toolkits.mplot3d import Axes3D
 from matplotlib import cm
 
-
 def readCSV(filename):
 	with open(filename,'rU') as f:
 		reader = csv.reader(f)
@@ -224,7 +223,7 @@ def pca_thing(scenario_data,xcols,ycols,titlestr):
     
     fig = plt.figure()
     ax = fig.add_subplot(111)
-    ax.set_title("PC0 vs PC1 vs Performance "+' '.join(cs),fontsize=14)
+#    ax.set_title("PC0 vs PC1 vs Performance "+' '.join(cs),fontsize=14)
     ax.set_xlabel("PC0",fontsize=12)
     ax.set_ylabel("PC1",fontsize=12)
     ax.scatter(transformed_x_full[:,0],transformed_x_full[:,1],s=100,c=y,marker='*',cmap=cm.bwr)
@@ -233,7 +232,7 @@ def pca_thing(scenario_data,xcols,ycols,titlestr):
     fig = plt.figure()
     ax = fig.add_subplot(111, projection='3d')
     ax.scatter(transformed_x_full[:,0],transformed_x_full[:,1],transformed_x_full[:,2],s=100,c=y,marker='*',cmap=cm.bwr)
-    ax.set_title("PC0 vs PC1 vs PC2 vs Performance "+' '.join(cs),fontsize=14)
+#    ax.set_title("PC0 vs PC1 vs PC2 vs Performance "+' '.join(cs),fontsize=14)
     ax.set_xlabel("PC0",fontsize=12)
     ax.set_ylabel("PC1",fontsize=12)
     ax.set_zlabel("PC2",fontsize=12)
@@ -388,6 +387,7 @@ def perform_dimensionality_reduction_analyses(data):
                           ('Supplies QUANTITY',['Team Supplies'],np.sum),
                           ('Supplies VARIETY',['Team Supplies'],np.mean),
                           ]
+
     performance_measures = ['Zoo QUALITY','Zoo QUANTITY','Zoo VARIETY',
                             'Farmer QUALITY','Farmer QUANTITY','Farmer VARIETY',
                             'Travel QUALITY','Travel QUANTITY','Travel VARIETY',
@@ -488,19 +488,47 @@ def perform_dimensionality_reduction_analyses(data):
 def perform_cognitive_mode_membership_analyses(data):
     
     #generate rosters based on who was present
-    analysis_scenarios = [('Zoo QUALITY',['Team Zoo'],np.max),
-                          ('Zoo QUANTITY',['Team Zoo'],np.sum),
-                          ('Zoo VARIETY',['Team Zoo'],np.mean),
-                          ('Farmer QUALITY',['Team Farmer'],np.max),
-                          ('Farmer QUANTITY',['Team Farmer'],np.sum),
-                          ('Farmer VARIETY',['Team Farmer'],np.mean),
-                          ('Travel QUALITY',['Team Travel'],np.max),
-                          ('Travel QUANTITY',['Team Travel'],np.sum),
-                          ('Travel VARIETY',['Team Travel'],np.mean),
-                          ('Supplies QUALITY',['Team Supplies'],np.max),
-                          ('Supplies QUANTITY',['Team Supplies'],np.sum),
-                          ('Supplies VARIETY',['Team Supplies'],np.mean),
-                          ]
+#    analysis_scenarios = [('Zoo QUALITY',['Team Zoo'],np.max),
+#                          ('Zoo QUANTITY',['Team Zoo'],np.sum),
+#                          ('Zoo VARIETY',['Team Zoo'],np.mean),
+#                          ('Farmer QUALITY',['Team Farmer'],np.max),
+#                          ('Farmer QUANTITY',['Team Farmer'],np.sum),
+#                          ('Farmer VARIETY',['Team Farmer'],np.mean),
+#                          ('Travel QUALITY',['Team Travel'],np.max),
+#                          ('Travel QUANTITY',['Team Travel'],np.sum),
+#                          ('Travel VARIETY',['Team Travel'],np.mean),
+#                          ('Supplies QUALITY',['Team Supplies'],np.max),
+#                          ('Supplies QUANTITY',['Team Supplies'],np.sum),
+#                          ('Supplies VARIETY',['Team Supplies'],np.mean),
+#                          ]
+#    analysis_scenarios = [('Zoo QUALITY',['Team Zoo'],np.mean),
+#                          ('Zoo QUANTITY',['Team Zoo'],np.mean),
+#                          ('Zoo VARIETY',['Team Zoo'],np.mean),
+#                          ('Farmer QUALITY',['Team Farmer'],np.mean),
+#                          ('Farmer QUANTITY',['Team Farmer'],np.mean),
+#                          ('Farmer VARIETY',['Team Farmer'],np.mean),
+#                          ('Travel QUALITY',['Team Travel'],np.mean),
+#                          ('Travel QUANTITY',['Team Travel'],np.mean),
+#                          ('Travel VARIETY',['Team Travel'],np.mean),
+#                          ('Supplies QUALITY',['Team Supplies'],np.mean),
+#                          ('Supplies QUANTITY',['Team Supplies'],np.mean),
+#                          ('Supplies VARIETY',['Team Supplies'],np.mean),
+#                          ]
+#    
+    #Using sums seems to give the best results for all 3 measures of performance (note:introduces correlation with quantity)
+    analysis_scenarios = [('Zoo QUALITY',['Team Zoo'],np.sum),
+                      ('Zoo QUANTITY',['Team Zoo'],np.sum),
+                      ('Zoo VARIETY',['Team Zoo'],np.sum),
+                      ('Farmer QUALITY',['Team Farmer'],np.sum),
+                      ('Farmer QUANTITY',['Team Farmer'],np.sum),
+                      ('Farmer VARIETY',['Team Farmer'],np.sum),
+                      ('Travel QUALITY',['Team Travel'],np.sum),
+                      ('Travel QUANTITY',['Team Travel'],np.sum),
+                      ('Travel VARIETY',['Team Travel'],np.sum),
+                      ('Supplies QUALITY',['Team Supplies'],np.sum),
+                      ('Supplies QUANTITY',['Team Supplies'],np.sum),
+                      ('Supplies VARIETY',['Team Supplies'],np.sum),
+                      ]
     
     performance_measures = ['Zoo QUALITY','Zoo QUANTITY','Zoo VARIETY',
                             'Farmer QUALITY','Farmer QUANTITY','Farmer VARIETY',
@@ -523,24 +551,52 @@ def perform_cognitive_mode_membership_analyses(data):
         this_combined_scenario = pd.DataFrame()
         for s in cs:
             this_scenario = scenario_dict[s]
+            this_scenario = make_briggs_attitudes(this_scenario)
+            this_scenario = calculate_cognitive_mode_memberships(this_scenario)
+            outpath = '/Volumes/SanDisk/Repos/personality_ideation/data/debug_onescenario.csv'
+            this_scenario.to_csv(outpath,encoding='utf-8')
+            this_scenario = this_scenario.groupby('TeamID',as_index=False).first()
+            
+            #merge scenarios into a single scenario, after this many columns will be garbage (ones we don't care about right now) so use with care
             this_combined_scenario = this_combined_scenario.append(this_scenario)
         
-        
-        this_combined_scenario = make_briggs_attitudes(this_combined_scenario)
-        this_combined_scenario = calculate_cognitive_mode_memberships(this_combined_scenario)
-        this_combined_scenario = this_combined_scenario.groupby('TeamID').first()
+        #Results for main data set
         this_combined_scenario['total_affinity'] = this_combined_scenario[[d for d in this_combined_scenario.columns if d.startswith('affinity_')]].sum(axis=1)
+        scenario_str = '-'.join(cs)
         print('Total Affinity for ',cs)
+        outpath = '/Volumes/SanDisk/Repos/personality_ideation/data/debug_output'+scenario_str+'.csv'
+        this_combined_scenario.to_csv(outpath,encoding='utf-8')
+        
         print(scipy.stats.spearmanr(this_combined_scenario['total_affinity'],this_combined_scenario['metric']))
         plt.scatter(this_combined_scenario['total_affinity'],this_combined_scenario['metric'])
         plt.show()
         
-#        for mode_col in [d for d in this_combined_scenario.columns if d.startswith('affinity_')]:
-#            
-#            lr = linear_model.LinearRegression(fit_intercept=True,normalize=True)
-#
-#            lr.fit(this_combined_scenario[mode_col],this_combined_scenario['metric'])
-#            scipy.stats.spearmanr(this_combined_scenario[mode_col],this_combined_scenario['metric'])
+        
+        #Bootstrapping for spearman correlation and corresponding p-value
+        corrs=np.array([])
+        ps=np.array([])
+        nsamples=10000
+        for n in range(nsamples):
+            sampled_scenario = this_combined_scenario[['total_affinity','metric']].sample(frac=1,replace=True)
+            corr,p = scipy.stats.spearmanr(sampled_scenario['total_affinity'],sampled_scenario['metric'])
+            corrs = np.append(corrs,corr)
+            ps = np.append(ps,p)
+
+        print(corrs.mean(),corrs.std())
+        print(ps.mean(),ps.std(),ps.max())
+        print('spearman correlation coeff 95% CI: (',corrs.mean()-1.96*corrs.std(),'--',corrs.mean()+1.96*corrs.std(),')')
+        print('p-value 95% CI: (',ps.mean()-1.96*ps.std(),'--',ps.mean()+1.96*ps.std(),')')
+        plt.hist(corrs,bins='auto',range=(-1,1))
+        plt.title('Correlation Coefficient Frequency Distribution for '+scenario_str)
+        plt.xlabel('Spearman Correlation Coefficient')
+        plt.ylabel('Frequency')
+        plt.show()
+        plt.hist(ps,bins='auto',range=(0,0.2))
+        plt.title('p-value Frequency Distribution')
+        plt.xlabel('p-value')
+        plt.ylabel('Frequency')
+        plt.show()
+        print('============================')
 
         
     
